@@ -17,6 +17,14 @@ script.src = "https://raw.githubusercontent.com/kolosochek/webim/master/complete
 script.type = "text/javascript"
 document.body.appendChild(script);
 
+// forEach method used for DOM node iteration
+var forEach = function (array, callback, scope) {
+  for (var i = 0; i < array.length; i++) {
+    callback.call(scope, i, array[i]); // passes back stuff that we need
+  }
+};
+NodeList.prototype.forEach = Array.prototype.forEach;
+
 var textarea = document.getElementById("msgwnd");
 var defaultExtension = 'jpg';
 var defaultQASearchAnchor = '!найди';
@@ -51,7 +59,6 @@ textarea.addEventListener('input', function(){
             "Content-Type": "application/x-www-form-urlencoded"
         },
         onload: function (response) {
-            //console.log(response.responseText);
             // backup var regexp = new RegExp('<div class="q-line"><a class="q-title" style="" href="[a-zA-Z0-9-\/ ]*">', 'g');//</a><br>', 'g');
             var regexp = new RegExp('<div class="q-line"><a class="q-title" style="" href="[a-zA-Z0-9-\/ ]*">[а-яА-Я ?]*</a>', 'g');//</a><br>', 'g');
             //console.log(response.responseText.match(regexp));
@@ -63,7 +70,7 @@ textarea.addEventListener('input', function(){
                 content+= data;//links_arr[i];            
             }
             // debug
-            console.log(content);
+            //console.log(content);
 			toggle_modal_window(content);
         }
     });
@@ -77,7 +84,29 @@ function create_modal_window(content){
 	'</div></div>'+
 	'<style>#modal_window_wrapper {position:absolute; width: 100%; height: 100%;} .b-modal-wrapper {height: 100%; width: 100%;} #modal-wrapper {position:relative; height: 100%;} .b-modal-window-background {position:absolute; height: 100%; width: 100%; z-index: 10;  background: #000000; opacity: .2} .b-modal-window {position:absolute; z-index: 100; background:#FFF; border-radius: 8px; padding: 100px; margin: 50px auto} .b-modal-window a.q-title {display:block; text-decoration:none; margin: 10px 0;} .b-modal {} #close_button {text-decoration:none; position: absolute; right: 20px; top: 20px;}</style>';
 	document.body.insertBefore(modal_window_wrapper, document.body.firstChild);
-	modal_window_wrapper.innerHTML = raw_html;	
+	modal_window_wrapper.innerHTML = raw_html;
+	// iterate trough each pasted link and add custom event listener
+	var links_node_list = document.querySelectorAll("#modal_window .q-title");
+	if (links_node_list.length) {
+		links_node_list.forEach(function(){
+		// debug
+		console.log(this);
+			this.addEventListener('click', function(event){
+				// debug
+				//console.log(this);
+				//console.log('links_node_list_for_each_click');
+				// first of all we must prevent standard browser behavior
+				event = event || window.event;
+				event.preventDefault();
+				event.defaultPrevented;
+				// then just grab href attr and paste it to msgwnd
+				// debug
+				//console.log(this);
+				//textarea.value = this.href;
+				return false;
+			});
+		});
+	}
 	var close_button = document.getElementById("close_button");
 	close_button.addEventListener('click', function(){
 		//debug
