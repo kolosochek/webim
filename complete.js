@@ -389,7 +389,7 @@ function autocomplete(container, config){
     return rs;
 }
 
-var ac = autocomplete($("msgwnd").parentNode);
+var ac = autocomplete(document.getElementById("msgwnd").parentNode);
 var combination = [
     // благодарю
     { id: 'благодарю Вас за информацию', options:[", ожидайте пожалуйста "] },

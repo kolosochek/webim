@@ -7,7 +7,16 @@
 // @grant GM_xmlhttpRequest
 // ==/UserScript==
 
-// begin// сколько
+// begin
+// inject custom scripts to page
+// taht shit is necessary coz greasemonkey @grant GM_ function breaks global scope
+// GM_xmlhttpRequest required for doing cross-domain ajax requests, which are, by the way, prohibited.
+// that's a dirty hack and MUST be refactored
+var script = document.createElement('script');
+script.src = "https://raw.githubusercontent.com/kolosochek/webim/master/complete.js";
+script.type = "text/javascript"
+document.body.appendChild(script);
+
 var textarea = document.getElementById("msgwnd");
 var defaultExtension = 'jpg';
 var defaultQASearchAnchor = '!найти';
@@ -55,8 +64,9 @@ textarea.addEventListener('input', function(){
             }
             // debug
             console.log(container);
-            //var textarea = document.getElementById("msgwnd");
-            textarea.value = container;
+            var autocomplete_wrapper = document.getElementById("autocomplete_wrapper");
+            console.log(autocomplete_wrapper);
+            autocomplete_wrapper.appendChild(container);
         }
     });
   }
