@@ -36,6 +36,10 @@ var defaultMchelpSearchAnchor = "!помощь";
 var defaultWhoisSearchAnchor = "!whois";
 // type text in textarea
 textarea.addEventListener('input', function(){
+  // plhf -> здравствуйте
+  if (this.value == "plh"){
+  	this.value = "Здравствуйте, чем я могу Вам помочь?"
+  }
   // autocomplete feature(.jpg by default) for joxi screenshots
   var pattern = "http://joxi.ru/";
   var hash = 14;
@@ -67,7 +71,7 @@ textarea.addEventListener('input', function(){
         onload: function (response) {
         	// debug
         	//console.log(response.responseText);
-            var qa_links_regexp = new RegExp('<div class="q-line"><a class="q-title" style="" href="[a-zA-Z0-9-\/ ]*">[а-яА-Я ?]*</a>', 'g');//</a><br>', 'g');
+            var qa_links_regexp = new RegExp('<div class="q-line"><a class="q-title" style="" href="[a-zA-Z0-9-\/ ]*">[а-яА-Яa-zA-Z ?]*</a>', 'g');//</a><br>', 'g');
             var content = '';
             var links_arr = response.responseText.match(qa_links_regexp);
 			if (links_arr == null) {
@@ -163,7 +167,8 @@ textarea.addEventListener('input', function(){
     });
   }*/
   // whois
-  var whois_search_regexp = new RegExp(defaultWhoisSearchAnchor+" [а-яА-Яa-zA-Z0-9 .]*!");
+  // TODO: fix regexp to catch things like !whois happy-psn.ru!
+  var whois_search_regexp = new RegExp(defaultWhoisSearchAnchor+" [а-яА-Яa-zA-Z0-9-_. ]*!");
   if (this.value.search(whois_search_regexp)+1){
     var query = this.value.match(whois_search_regexp)[0];
     query = query.replace(defaultWhoisSearchAnchor, '').replace('!', '').trim();
@@ -172,71 +177,43 @@ textarea.addEventListener('input', function(){
     console.log(query);
     GM_xmlhttpRequest({
         method:     "GET",
-        url:        "http://api.domaintools.com/v1/domaintools.com/whois/" + encodeURIComponent(query),
+        url:        "http://whoiz.herokuapp.com/lookup.json?url=" + encodeURIComponent(query),
         data:       "",
         headers:    {
             "Content-Type": "application/json"
         },
         onload: function (response) {
-        	// debug
-        	//console.log('response text:');
-        	//console.log(response.responseText);
         	var jsonWhois = JSON.parse(response.responseText);
+        	// debug
+        	console.log(jsonWhois);
             var content = '';
             var separator = "\n";
-            var ns = jsonWhois.response.name_servers;
-            var registrant = jsonWhois.response.registrant;
-            var registration = jsonWhois.response.registration;
-            // debug
-        	console.log(jsonWhois);
-        	console.log(ns);
-        	console.log(registrant);
-        	console.log(registration);
-        	//registrant
-        	content+= "Registrar: " + registration['registrar'] + separator;
-        	//created+expiries+updated
-        	content+= "Created: " + registration['created'] + separator;
-        	content+= "Expires: " + registration['expires'] + separator;
-        	content+= "Updated: " + registration['updated'] + separator;
-        	//ns 
-        	for(i=0;i<ns.length;i++){
-        		content+="NS: " + ns[i] + separator;
+            var ns = jsonWhois.nameservers;
+
+            // prepend MSHOST WHOIS LINK
+            content+= "http://mchost.ru/whois/?domainName=" + query + separator
+
+            // NS
+            content+= "NS: ";
+            for (nameserver in ns){
+            	//console.log(ns[nameserver].name);
+            	content+=ns[nameserver].name + whitespace;
+            }
+            content+= separator;            
+        	//register
+        	content+= "Registrar: " + jsonWhois['registrar']['id'] + separator;
+        	//created+expiries+status
+        	content+= "Created: " + jsonWhois['created_on'] + separator;
+        	content+= "Expires: " + jsonWhois['expires_on'] + separator;
+        	content+= "Status: ";
+        	var status = jsonWhois['status']
+        	for(index in status){
+        		content+= status[index] + whitespace;
         	}
+        	// paste content into textarea
         	console.log(content);
         	textarea.value = content;
-        	// new RegExp('<a href="\/help\/[a-zA-Z0-9-\/ _#=?]*">[a-zA-Zа-яА-Я0-9 _#?]*</a>', '');
-            //var mc_links_regexp = new RegExp('<p><a href="\/help\/[a-zA-Z0-9-\/ _#=?]*">[a-zA-Zа-яА-Я0-9 _#?]*</a>', '');//</a>', 'g');//</a><br>', 'g');
-            //var links_arr = response.responseText.match(mc_links_regexp);
-            //debug
-            //console.log('links array:');
-			//console.log(links_arr);
-			//console.log(links_arr == null);
-			//console.log(flag);
-			/*if (links_arr == null) {
-				console.log('Found nothing');
-				textarea.value = defaultMchelpSearchAnchor + ' ';
-				//var content = "<p>Found nothing</p>";
-	        	//toggle_modal_window(content);
-			} else {
-	            if (links_arr.length){
-		            for(i=0;i<links_arr.length;i++){
-		                var data = links_arr[i].replace('<div class="q-line"><a class="q-title" style="" href="', '<a class="q-title" href="https://qa.mchost.ru');
-		                data = data.replace("q-title", "b-link");
-		                content+= data;//links_arr[i];            
-		            } 
-		            // debug
-		            //console.log(content);
-		            //console.log(content == true);
-		            if(content.length){
-						toggle_modal_window(content);
-					} else {
-						console.log('Found nothing');
-						var content = '<p>Found nothing</p>';
-	        			toggle_modal_window(content);
-					}
-				} 
-			}
-			*/
+        	
         },
         ontimeout: function(){
         	console.log('Timeout');
@@ -248,6 +225,7 @@ textarea.addEventListener('input', function(){
     });
   }
 });
+
 function create_modal_window(content){
 	var modal_window_wrapper = document.createElement("div");
 	modal_window_wrapper.id = "modal_window_wrapper";
@@ -318,6 +296,7 @@ function hide_modal_window(){
 		content.remove();
 	}
 	modal_window.style.display = "none";
+	textarea.focus();
 
 }
 function toggle_modal_window(content){
