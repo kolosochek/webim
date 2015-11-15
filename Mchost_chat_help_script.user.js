@@ -32,6 +32,8 @@ NodeList.prototype.remove = HTMLCollection.prototype.remove = function() {
 var textarea = document.getElementById("msgwnd");
 var defaultExtension = 'jpg';
 var defaultQASearchAnchor = '!найди';
+var defaultMchelpSearchAnchor = "!помощь";
+var defaultWhoisSearchAnchor = "!whois";
 // type text in textarea
 textarea.addEventListener('input', function(){
   // autocomplete feature(.jpg by default) for joxi screenshots
@@ -68,13 +70,67 @@ textarea.addEventListener('input', function(){
             var qa_links_regexp = new RegExp('<div class="q-line"><a class="q-title" style="" href="[a-zA-Z0-9-\/ ]*">[а-яА-Я ?]*</a>', 'g');//</a><br>', 'g');
             var content = '';
             var links_arr = response.responseText.match(qa_links_regexp);
-            var flag = response.responseText.search(qa_links_regexp);
-			//console.log(links_arr);
+			if (links_arr == null) {
+				console.log('Found nothing');
+				textarea.value = defaultQASearchAnchor + ' ';
+			} else {
+	            if (links_arr.length){
+		            for(i=0;i<links_arr.length;i++){
+		                var data = links_arr[i].replace('<div class="q-line"><a class="q-title" style="" href="', '<a class="q-title" href="https://qa.mchost.ru');
+		                data = data.replace("q-title", "b-link");
+		                content+= data;//links_arr[i];            
+		            } 
+		            if(content.length){
+						toggle_modal_window(content);
+					} else {
+						console.log('Found nothing');
+						var content = '<p>Found nothing</p>';
+	        			toggle_modal_window(content);
+					}
+				} 
+			}
+        },
+        ontimeout: function(){
+        	console.log('Timeout');
+        	var content = "<p>Timeout</p>";
+        	toggle_modal_window(content);
+        },
+        // request timeout, 4s for best perfomance
+        timeout: 4000,
+    });
+  }
+  /*
+  // mchost help search
+  var mc_search_regexp = new RegExp(defaultMchelpSearchAnchor+" [а-яА-Яa-zA-Z0-9 ]*!");
+  if (this.value.search(mc_search_regexp)+1){
+    var query = this.value.match(mc_search_regexp)[0];
+    query = query.replace(defaultMchelpSearchAnchor, '').replace('!', '').trim();
+    //debug
+    console.log('query:');
+    console.log(query);
+    GM_xmlhttpRequest({
+        method:     "GET",
+        url:        "http://mchost.ru/search/index.php?bxajaxid=b3d99dd29e4e0053b568d46975f24860&AJAX_CALL=Y&spell=1&q=" + encodeURIComponent(query),//"http://mchost.ru/search/index.php?spell=1&q="+encodeURIComponent(query),
+        data:       "",
+        headers:    {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        onload: function (response) {
+        	// debug
+        	console.log('response text:');
+        	console.log(response.responseText);
+        	// new RegExp('<a href="\/help\/[a-zA-Z0-9-\/ _#=?]*">[a-zA-Zа-яА-Я0-9 _#?]*</a>', '');
+            var mc_links_regexp = new RegExp('<p><a href="\/help\/[a-zA-Z0-9-\/ _#=?]*">[a-zA-Zа-яА-Я0-9 _#?]*</a>', '');//</a>', 'g');//</a><br>', 'g');
+            var content = '';
+            var links_arr = response.responseText.match(mc_links_regexp);
+            //debug
+            console.log('links array:');
+			console.log(links_arr);
 			//console.log(links_arr == null);
 			//console.log(flag);
 			if (links_arr == null) {
 				console.log('Found nothing');
-				textarea.value = '!найди ';
+				textarea.value = defaultMchelpSearchAnchor + ' ';
 				//var content = "<p>Found nothing</p>";
 	        	//toggle_modal_window(content);
 			} else {
@@ -96,6 +152,91 @@ textarea.addEventListener('input', function(){
 					}
 				} 
 			}
+        },
+        ontimeout: function(){
+        	console.log('Timeout');
+        	var content = "<p>Timeout</p>";
+        	toggle_modal_window(content);
+        },
+        // request timeout, 4s for best perfomance
+        timeout: 4000,
+    });
+  }*/
+  // whois
+  var whois_search_regexp = new RegExp(defaultWhoisSearchAnchor+" [а-яА-Яa-zA-Z0-9 .]*!");
+  if (this.value.search(whois_search_regexp)+1){
+    var query = this.value.match(whois_search_regexp)[0];
+    query = query.replace(defaultWhoisSearchAnchor, '').replace('!', '').trim();
+    //debug
+    console.log('query:');
+    console.log(query);
+    GM_xmlhttpRequest({
+        method:     "GET",
+        url:        "http://api.domaintools.com/v1/domaintools.com/whois/" + encodeURIComponent(query),
+        data:       "",
+        headers:    {
+            "Content-Type": "application/json"
+        },
+        onload: function (response) {
+        	// debug
+        	//console.log('response text:');
+        	//console.log(response.responseText);
+        	var jsonWhois = JSON.parse(response.responseText);
+            var content = '';
+            var separator = "\n";
+            var ns = jsonWhois.response.name_servers;
+            var registrant = jsonWhois.response.registrant;
+            var registration = jsonWhois.response.registration;
+            // debug
+        	console.log(jsonWhois);
+        	console.log(ns);
+        	console.log(registrant);
+        	console.log(registration);
+        	//registrant
+        	content+= "Registrar: " + registration['registrar'] + separator;
+        	//created+expiries+updated
+        	content+= "Created: " + registration['created'] + separator;
+        	content+= "Expires: " + registration['expires'] + separator;
+        	content+= "Updated: " + registration['updated'] + separator;
+        	//ns 
+        	for(i=0;i<ns.length;i++){
+        		content+="NS: " + ns[i] + separator;
+        	}
+        	console.log(content);
+        	textarea.value = content;
+        	// new RegExp('<a href="\/help\/[a-zA-Z0-9-\/ _#=?]*">[a-zA-Zа-яА-Я0-9 _#?]*</a>', '');
+            //var mc_links_regexp = new RegExp('<p><a href="\/help\/[a-zA-Z0-9-\/ _#=?]*">[a-zA-Zа-яА-Я0-9 _#?]*</a>', '');//</a>', 'g');//</a><br>', 'g');
+            //var links_arr = response.responseText.match(mc_links_regexp);
+            //debug
+            //console.log('links array:');
+			//console.log(links_arr);
+			//console.log(links_arr == null);
+			//console.log(flag);
+			/*if (links_arr == null) {
+				console.log('Found nothing');
+				textarea.value = defaultMchelpSearchAnchor + ' ';
+				//var content = "<p>Found nothing</p>";
+	        	//toggle_modal_window(content);
+			} else {
+	            if (links_arr.length){
+		            for(i=0;i<links_arr.length;i++){
+		                var data = links_arr[i].replace('<div class="q-line"><a class="q-title" style="" href="', '<a class="q-title" href="https://qa.mchost.ru');
+		                data = data.replace("q-title", "b-link");
+		                content+= data;//links_arr[i];            
+		            } 
+		            // debug
+		            //console.log(content);
+		            //console.log(content == true);
+		            if(content.length){
+						toggle_modal_window(content);
+					} else {
+						console.log('Found nothing');
+						var content = '<p>Found nothing</p>';
+	        			toggle_modal_window(content);
+					}
+				} 
+			}
+			*/
         },
         ontimeout: function(){
         	console.log('Timeout');
