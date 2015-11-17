@@ -255,8 +255,18 @@ function toggle_modal_window(content){
 		create_modal_window(content);
 	}
 }
+
+
+
+
+
 // autoreply functions
 // autoreply 10 min afk
+var GMT_difference = "+2"; //TMN +2 
+var close_dialog_interval = 10;
+// check once in a minute
+var close_divalog_timer_interval = 1 * 60000;
+
 function get_last_message_timestamp(){
 	var content = document.getElementById("chatwnd").contentWindow.document.getElementById("content");
 	var span = content.querySelectorAll("span");
@@ -284,9 +294,8 @@ function get_last_message_timestamp(){
 		return false	
 	}
 }
-var GMT_difference = "+2"; //TMN +2 
-var close_dialog_interval = 10;
-var last_message_object = get_last_message_timestamp();
+//debug
+//var last_message_object = get_last_message_timestamp();
 
 function get_current_time_object(){
 	var current_date = new Date();	
@@ -330,10 +339,10 @@ function compare_time(current_time, last_message_time){
 			//console.log('minute difference:');	
 			//console.log(minute_difference);
 			if(minute_difference > close_dialog_interval){
-				console.log('Мы не получили никакого бла бла бла');
+				console.log('Close dialog: true');
 				return true;
 			} else {
-				console.log('Not yet');
+				console.log('Close dialog: not yet');
 				return false;
 			}
 		}
@@ -341,6 +350,7 @@ function compare_time(current_time, last_message_time){
 		console.log("can't compare hours");
 	}
 }
+// function fired when it's time to close the dialog
 function close_dialog_function(){
 	//debug
 	console.log("It's time to close dialog!");
@@ -350,16 +360,16 @@ function close_dialog_function(){
 	//console.log(textarea);
 	textarea.value = "Мы не получили от вас никакого сообщения в течение длительного времени. Когда у вас снова возникнут вопросы обращайтесь, мы всегда рады вам помочь. До свидания.";
 }
-var close_divalog_timer_interval = 1 * 60000;
+// create a timer to check
 var close_dialog_timer;
-if (compare_time(get_current_time_object(), last_message_object)){
-	//debug
-	console.log('gotcha');
+// initial check, f.e. after dialog page refresh or reload
+if (compare_time(get_current_time_object(), get_last_message_timestamp())){
 	close_dialog_function();
 } else {
+	// debug
 	console.log('set_interval');
 	close_dialog_timer = setInterval(function(){
-		if(compare_time(get_current_time_object(), last_message_object)){
+		if(compare_time(get_current_time_object(), get_last_message_timestamp())){
 			close_dialog_function();
 			clearInterval(close_dialog_timer);
 		}
