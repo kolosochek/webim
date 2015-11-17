@@ -154,7 +154,6 @@ textarea.addEventListener('input', function(){
 	        		content+= status[index] + whitespace;
 	        	}
 	        	// paste content into textarea
-	        	console.log(content);
 	        	textarea.value = content;
 	        	
 	        },
