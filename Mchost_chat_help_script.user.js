@@ -34,6 +34,7 @@ var defaultExtension = 'jpg';
 var defaultQASearchAnchor = '!найди';
 var defaultMchelpSearchAnchor = "!помощь";
 var defaultWhoisSearchAnchor = "!whois";
+var defaultDigSearchAnchor = "!dig";
 
 // type text in textarea
 textarea.addEventListener('input', function(){
@@ -110,7 +111,7 @@ textarea.addEventListener('input', function(){
 	    });
 	  }
 	  // whois
-	  // TODO: fix regexp to catch things like !whois happy-psn.ru!
+	  // TODO: fix regexp
 	  var whois_search_regexp = new RegExp(defaultWhoisSearchAnchor+" [а-яА-Яa-zA-Z0-9-_. ]*!");
 	  if (this.value.search(whois_search_regexp)+1){
 	    var query = this.value.match(whois_search_regexp)[0];
@@ -166,7 +167,60 @@ textarea.addEventListener('input', function(){
 	        // request timeout, 4s for best perfomance
 	        timeout: 4000,
 	    });
-	  }	
+	  }
+	  // dig
+	  var dig_search_regexp = new RegExp(defaultDigSearchAnchor+" [а-яА-Яa-zA-Z0-9-_. ]*!");
+	  if (this.value.search(dig_search_regexp)+1){
+	    var query = this.value.match(dig_search_regexp)[0];
+	    query = query.replace(defaultDigSearchAnchor, '').replace('!', '').trim();
+	    // chose 
+	    var type = "ANY";
+	    //debug
+	    console.log('query:');
+	    console.log(query);
+	    GM_xmlhttpRequest({
+	        method:     "GET",
+	        url:        "https://toolbox.googleapps.com/apps/dig/lookup?domain=" + encodeURIComponent(query) + "&nameserver=&typ=" + type,
+	        data:       '',
+	        headers:    {
+	            "Content-Type": "application/text-html"
+	        },
+	        onload: function (response) {
+	        	var dig_results_regexp = new RegExp(";ANSWER",'');//[а-яА-Яa-zA-Z0-9-_. ]*!");//.match(/;ANSWER/)
+	    		var data = JSON.parse(response.responseText);
+	    		// check data
+	    		if ((data.response.length) && (data.error_html.length == 0)){
+	    			data = data.response
+		    		data = data.substring(data.search(/;ANSWER/), data.length);
+		    		data = data.substring(0, data.search(/;AUTHORITY/));
+		    		data = data.replace(/;ANSWER/,'').trim();
+		    		// debug
+		    		console.log(data);
+		    		// check date length
+		    		if (data){
+		    			textarea.value = data;
+		    		} else {
+		    			// debug
+		    			console.log('Dig data is empty');
+		    			textarea.value = defaultDigSearchAnchor + ' 0';
+
+		    		}
+	    		} else {
+	    			console.log('Got dig errors');
+	    			console.log(data.error_html);
+	    		}	        	
+	        },
+	        ontimeout: function(){
+	        	// debug
+	        	console.log('Timeout');
+	        	textarea.value = defaultDigSearchAnchor + ' -';
+	        },
+	        // request timeout, 4s for best perfomance
+	        timeout: 4000,
+	    });
+	  }
+
+
   }  
 });
 // modal window functions
@@ -191,7 +245,7 @@ function create_modal_window(content){
 				event.defaultPrevented;
 				// then just grab href attr and paste it to msgwnd
 				// debug
-				console.log(this);
+				//console.log(this);
 				textarea.value = this.href;
 				hide_modal_window();
 				return false;
@@ -335,6 +389,8 @@ function compare_time(current_time, last_message_time){
         }
     } else {
         console.log("can't compare hours");
+       	console.log(current_time);
+       	console.log(last_message_time);
     }
 }
 // function fired when it's time to close the dialog
@@ -346,6 +402,8 @@ function close_dialog_function(){
     var textarea = document.getElementById("msgwnd");
     //console.log(textarea);
     textarea.value = "Мы не получили от вас никакого сообщения в течение длительного времени. Когда у вас снова возникнут вопросы обращайтесь, мы всегда рады вам помочь. До свидания.";
+    // sound alert
+    $s('/webim/sounds/new_message.mp3');
 }
 // create a timer to check
 var close_dialog_timer;
@@ -354,10 +412,10 @@ var close_dialog_timer;
 // by ajax so the script can't get last message timestamp right on DOM ready.
 setTimeout(function(){	
 	if (compare_time(get_current_time_object(), get_last_message_timestamp())){
-    close_dialog_function();
+    	close_dialog_function();
 	} else {
 	    // debug
-	    //console.log('set_interval');
+	    console.log('set_interval');
 	    close_dialog_timer = setInterval(function(){
 	        if(compare_time(get_current_time_object(), get_last_message_timestamp())){
 	            close_dialog_function();
